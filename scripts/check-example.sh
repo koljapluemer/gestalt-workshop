@@ -7,9 +7,8 @@ trap 'rm -rf "$tmp"' EXIT
 for ex in "$here"/agent-template/examples/*/; do
   id="$(basename "$ex")"
   ws="$tmp/$id"
-  mkdir -p "$ws/.workshop"
-  cp "$here"/agent-template/{tsconfig.json,workshop.d.ts,check.ts} "$ws/"
-  cp "$here/src/runtime/compile.ts" "$ws/.workshop/"
+  mkdir -p "$ws"
+  cp "$here"/agent-template/{tsconfig.json,check.ts} "$ws/"
   ln -s "$here/agent-template/node_modules" "$ws/node_modules"
   cp -r "$ex"/. "$ws/"
   echo "example $id:"

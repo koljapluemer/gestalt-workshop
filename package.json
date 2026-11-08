@@ -11,23 +11,19 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gestalts-plugin/workshop": "link:./plugins/workshop",
     "@gestalts/client": "link:../gestalts/packages/client",
     "@gestalts/kit": "link:../gestalts/packages/kit",
     "@gestalts/learning": "link:../gestalts/packages/learning",
-    "@gestalts/sdk": "link:../gestalts/packages/sdk",
-    "@gestalts/ui": "link:../gestalts/packages/ui",
     "@gestalts/vite": "link:../gestalts/packages/vite",
     "@tailwindcss/browser": "4.3.3",
-    "d3": "7.9.0",
     "lucide-react": "1.66.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "sucrase": "3.35.1"
+    "@gestalts/host": "link:../gestalts/packages/host",
+    "@gestalts/view": "link:../gestalts/packages/view"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
-    "@types/d3": "7.4.3",
     "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

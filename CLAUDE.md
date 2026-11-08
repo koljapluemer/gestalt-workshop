@@ -4,4 +4,4 @@
 - keep README lean, and docs/.md up to date
 - this is a real, user-facing app that has to work, and not just on this random dev machine
 - do not repeatedly tell me what I put in this claude.md, I know
-- `agent-template/CLAUDE.md` is not for you: it's the contract the workshop's agent gets in each plugin's workspace.
+- `agent-template/CLAUDE.md` is not for you: it's the contract the workshop's agent gets in each view's workspace.

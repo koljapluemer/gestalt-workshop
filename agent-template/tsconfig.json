@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2023",
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2024",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
@@ -9,8 +13,11 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": [],
-    "paths": { "@workshop/plugin": ["./workshop.d.ts"] }
+    "types": [
+      "vite/client"
+    ]
   },
-  "files": ["plugin.tsx"]
+  "files": [
+    "view.tsx"
+  ]
 }

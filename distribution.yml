@@ -1,5 +1,3 @@
-# The workshop (`id`, kept for good: notes may record it): the host, the workshop plugin (its gestalt and the
-# workshop@1 worker), and plugins vibecoded into notes, run in a frame
-id: gestalt-workshop
-default_panes: []
-install_ui: false
+# The workshop (`id` is its for good): the host, and views vibecoded into `view@1` ymls. Its one plugin is the agent's
+# backend, which the node runs from this repo.
+id: workshop

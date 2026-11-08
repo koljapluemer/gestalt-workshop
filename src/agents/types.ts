@@ -1,20 +1,20 @@
-import type { RuntimeError } from '../runtime/protocol';
+import type { ViewError } from '@gestalts/view';
 
 /**
  * What the workshop asks of an agent, whatever runs it (the claude CLI behind the node now; an API called from the
- * browser later). The agent sees a plugin as files and returns the files it changed; the browser checks them and
- * writes the notes, so no agent needs access to them.
+ * browser later). The agent sees a view as files and returns the files it changed; the browser checks them and
+ * writes the yml, so no agent needs access to any.
  */
 export type TurnRequest = {
-  /** the plugin's id (lowercase letters, digits and -) */
-  plugin: string;
+  /** the view's id (lowercase letters, digits and -) */
+  view: string;
   /** this backend's conversation to continue, from an earlier `done` */
   session?: string;
   message: string;
-  /** `plugin.tsx` and `content/<name>.yml`, by path */
+  /** `view.tsx` and `view.json`, by path */
   files: Record<string, string>;
   /** what the preview reported since the last turn */
-  diagnostics: RuntimeError[];
+  diagnostics: ViewError[];
 };
 
 export type AgentEvent =

@@ -1,10 +1,9 @@
 # gestalt-workshop
 
-Vibecode interactive learning and visualization plugins by chatting with Claude, and see them run beside the chat.
-Based on the [gestalts](../gestalts) data paradigm: a plugin is a note (its source), its content and params are
-notes, and it keeps learner state (FSRS) in notes, so everything syncs like the rest of your data.
+Vibecode a view on your data by chatting with Claude, and see it run beside the chat. A view is one `view@1` yml, so it
+syncs like the rest of your [gestalts](../gestalts) data.
 
-For now it's local: the agent is your `claude` CLI, run by this repo's plugin on a gestalts node. See
+For now it's local: the agent is your `claude` CLI, run by this repo's `workshop-agent` backend on a gestalts node. See
 [`doc/architecture.md`](doc/architecture.md).
 
 ## Developing
@@ -22,8 +21,8 @@ parent/
 mise install          # once after cloning, and when mise.toml changes
 mise run dev          # the node (:7727) and the app (:5175) with hot reload
 mise run check        # lints, typechecks, tests, the agent template's example
-mise run build        # dist/: the shell and the frame page
+mise run build        # dist/
 ```
 
-The node keeps its notes in `$WORKSHOP_DATA` (default `~/gestalt-workshop-data`), and each plugin's workspace for the
+The node keeps its ymls in `$WORKSHOP_DATA` (default `~/gestalt-workshop-views`), and each view's workspace for the
 agent in `$WORKSHOP_WORKSPACES` (default `~/.local/share/gestalt-workshop/workspaces`).

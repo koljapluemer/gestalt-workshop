@@ -1,15 +1,18 @@
-"""The workshop@1 service: one turn of the claude CLI on a workshop plugin's files.
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+"""One turn of the claude CLI on a view's files.
 
-The browser sends the plugin's files (`plugin.tsx`, `content/*.yml`) with each message; this writes them into a
-workspace per plugin, next to the agent template (the plugin contract, types, `check.ts`), runs
-`claude -p --output-format stream-json` there and hands back what it said and did, then the files it changed. It
-reads and writes no notes: the browser writes them, so another agent backend can take this one's place.
+The browser sends the view's files (`view.tsx`, `view.json`) with each message; this writes them into a workspace per
+view, next to the agent template (the contract and `check.ts`), runs `claude -p --output-format stream-json` there and
+hands back what it said and did, then the files it changed. It reads and writes no ymls: the browser does, so another
+agent backend can take this one's place.
 
-Routes, all one path segment (the SDK passes on only the first one):
-- `POST turn` `{plugin, session?, message, files: {path: text}, diagnostics: [..]}` → 202 `{job}`; 409 while that
-  plugin has a turn running
-- `GET events?job=&after=n` → `{events, next, done}`, waiting up to 20 s for events after the `n`-th
-- `POST cancel` `{job}` → `{}`
+- `POST /turn` `{view, session?, message, files: {path: text}, diagnostics: [..]}` -> 202 `{job}`; 409 while that view has
+  a turn running
+- `GET /events?job=&after=n` -> `{events, next, done}`, waiting up to 20 s for events after the `n`-th
+- `POST /cancel` `{job}` -> `{}`
 """
 
 import json
@@ -22,30 +25,28 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
 
-from gestalts_plugin import Worker, run_worker
+from gestalts_backend import Backend
 
-REPO = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(os.environ.get("WORKSHOP_TEMPLATE", REPO / "agent-template"))
-COMPILE = REPO / "src" / "runtime" / "compile.ts"
 WORKSPACES = Path(os.environ.get("WORKSHOP_WORKSPACES", Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share")) / "gestalt-workshop" / "workspaces"))
 CLAUDE = os.environ.get("WORKSHOP_CLAUDE", "claude")
 # what the template brings into each workspace, replaced on every turn so a changed template takes effect
-TEMPLATE_FILES = ["CLAUDE.md", "tsconfig.json", "workshop.d.ts", "check.ts", "examples"]
+TEMPLATE_FILES = ["CLAUDE.md", "tsconfig.json", "check.ts", "examples"]
 TOOLS = ["Read", "Edit", "Write", "Glob", "Grep", "Bash(node check.ts)", "Bash(node check.ts:*)"]
-SYSTEM = ("You are editing one workshop plugin in this directory. CLAUDE.md here is the contract: read it first. "
-          "Only plugin.tsx and content/*.yml are kept; run `node check.ts` before you finish.")
+SYSTEM = ("You are editing one view in this directory. CLAUDE.md here is the contract: read it first. "
+          "Only view.tsx and view.json are kept; run `node check.ts` before you finish.")
 # the node's service proxy gives up after 180 s; each poll returns well before that
 POLL_S = 20
 KEEP_S = 600
-PLUGIN_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
+VIEW_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 
 
 class Job:
-    def __init__(self, plugin: str):
+    def __init__(self, view: str):
         self.id = uuid.uuid4().hex
-        self.plugin = plugin
+        self.view = view
         self.events: list[dict] = []
         self.done = False
         self.finished_at = 0.0
@@ -73,9 +74,7 @@ def _json(status: int, body: object) -> tuple[int, str, bytes]:
     return status, "application/json", json.dumps(body).encode()
 
 
-def _safe_path(path: str) -> bool:
-    """Only the files a plugin is: its source and its content notes."""
-    return path == "plugin.tsx" or (re.fullmatch(r"content/[A-Za-z0-9][A-Za-z0-9_.-]*\.yml", path) is not None and ".." not in path)
+KEPT = ("view.tsx", "view.json")
 
 
 def _changed_outside(workspace: Path, files: dict[str, str]) -> list[str]:
@@ -99,16 +98,13 @@ def _prepare(workspace: Path, files: dict[str, str], diagnostics: list) -> None:
             shutil.copytree(src, dst)
         elif src.exists():
             shutil.copy2(src, dst)
-    shared = workspace / ".workshop"
-    shared.mkdir(exist_ok=True)
-    shutil.copy2(COMPILE, shared / "compile.ts")
+    (workspace / ".workshop").mkdir(exist_ok=True)
     modules = workspace / "node_modules"
     if not modules.exists():
         modules.symlink_to(TEMPLATE / "node_modules", target_is_directory=True)
-    # the notes are the truth: what isn't in this turn's files is gone
-    (workspace / "plugin.tsx").unlink(missing_ok=True)
-    shutil.rmtree(workspace / "content", ignore_errors=True)
-    (workspace / "content").mkdir()
+    # the yml is the truth: what isn't in this turn's files is gone
+    for name in KEPT:
+        (workspace / name).unlink(missing_ok=True)
     for path, text in files.items():
         (workspace / path).write_text(text)
     errors = workspace / "runtime-errors.md"
@@ -122,15 +118,7 @@ def _prepare(workspace: Path, files: dict[str, str], diagnostics: list) -> None:
 
 
 def _collect(workspace: Path) -> dict[str, str]:
-    out: dict[str, str] = {}
-    source = workspace / "plugin.tsx"
-    if source.is_file():
-        out["plugin.tsx"] = source.read_text()
-    for f in sorted((workspace / "content").glob("*.yml")):
-        path = f"content/{f.name}"
-        if _safe_path(path):
-            out[path] = f.read_text()
-    return out
+    return {name: (workspace / name).read_text() for name in KEPT if (workspace / name).is_file()}
 
 
 def _summary(name: str, args: dict, workspace: Path) -> str:
@@ -145,7 +133,7 @@ def _summary(name: str, args: dict, workspace: Path) -> str:
 
 
 def _run(job: Job, session: str | None, message: str, files: dict[str, str], diagnostics: list) -> None:
-    workspace = WORKSPACES / job.plugin
+    workspace = WORKSPACES / job.view
     try:
         outside = _changed_outside(workspace, files)
         _prepare(workspace, files, diagnostics)
@@ -219,36 +207,37 @@ def _prune() -> None:
             del _jobs[key]
 
 
-def turn(body: bytes) -> tuple[int, str, bytes]:
-    try:
-        req = json.loads(body)
-    except json.JSONDecodeError:
-        return _json(400, {"error": "not JSON"})
-    plugin, message = req.get("plugin"), req.get("message")
+backend = Backend()
+
+
+@backend.route("/turn")
+def turn(req: dict) -> tuple[int, str, bytes]:
+    view, message = req.get("view"), req.get("message")
     files = req.get("files") or {}
-    if not isinstance(plugin, str) or not PLUGIN_ID.match(plugin):
-        return _json(400, {"error": "plugin: lowercase letters, digits and -"})
+    if not isinstance(view, str) or not VIEW_ID.match(view):
+        return _json(400, {"error": "view: lowercase letters, digits and -"})
     if not isinstance(message, str) or not message.strip():
         return _json(400, {"error": "message is empty"})
-    if not isinstance(files, dict) or not all(isinstance(p, str) and _safe_path(p) and isinstance(t, str) for p, t in files.items()):
-        return _json(400, {"error": "files: only plugin.tsx and content/<name>.yml, as text"})
+    if not isinstance(files, dict) or not all(p in KEPT and isinstance(t, str) for p, t in files.items()):
+        return _json(400, {"error": f"files: only {', '.join(KEPT)}, as text"})
     _prune()
     with _jobs_lock:
-        if any(j.plugin == plugin and not j.done for j in _jobs.values()):
-            return _json(409, {"error": "a turn is running for this plugin"})
-        job = Job(plugin)
+        if any(j.view == view and not j.done for j in _jobs.values()):
+            return _json(409, {"error": "a turn is running for this view"})
+        job = Job(view)
         _jobs[job.id] = job
     session = req.get("session") if isinstance(req.get("session"), str) else None
     threading.Thread(target=_run, args=(job, session, message, files, req.get("diagnostics") or []), daemon=True).start()
     return _json(202, {"job": job.id})
 
 
+@backend.route("/events", method="GET")
 def events(query: dict) -> tuple[int, str, bytes]:
-    job = _jobs.get((query.get("job") or [""])[0])
+    job = _jobs.get(query.get("job", ""))
     if not job:
         return _json(404, {"error": "no such job"})
     try:
-        after = max(0, int((query.get("after") or ["0"])[0]))
+        after = max(0, int(query.get("after", "0")))
     except ValueError:
         after = 0
     with job.cond:
@@ -256,11 +245,9 @@ def events(query: dict) -> tuple[int, str, bytes]:
         return _json(200, {"events": job.events[after:], "next": len(job.events), "done": job.done})
 
 
-def cancel(body: bytes) -> tuple[int, str, bytes]:
-    try:
-        job = _jobs.get(json.loads(body).get("job", ""))
-    except (json.JSONDecodeError, AttributeError):
-        job = None
+@backend.route("/cancel")
+def cancel(req: dict) -> tuple[int, str, bytes]:
+    job = _jobs.get(req.get("job", "")) if isinstance(req, dict) else None
     if not job:
         return _json(404, {"error": "no such job"})
     job.cancelled = True
@@ -272,23 +259,4 @@ def cancel(body: bytes) -> tuple[int, str, bytes]:
     return _json(200, {})
 
 
-def service(method: str, path: str, body: bytes) -> tuple[int, str, bytes]:
-    url = urlsplit(path)
-    route = (method, url.path.rstrip("/"))
-    if route == ("POST", "/turn"):
-        return turn(body)
-    if route == ("GET", "/events"):
-        return events(parse_qs(url.query))
-    if route == ("POST", "/cancel"):
-        return cancel(body)
-    return _json(404, {"error": f"no route {method} {url.path}"})
-
-
-def main() -> None:
-    worker = Worker(lambda _req: {"message": "the workshop has no runs; it offers workshop@1"})
-    worker.service("workshop@1", service)
-    run_worker(worker)
-
-
-if __name__ == "__main__":
-    main()
+backend.run()

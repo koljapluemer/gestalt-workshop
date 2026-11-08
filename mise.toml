@@ -15,7 +15,7 @@ run = [
 ]
 
 [tasks.node]
-description = "The node the workshop syncs with (:7727, folder $WORKSHOP_DATA or ~/gestalt-workshop-data), running the workshop@1 worker"
+description = "The node the workshop syncs with (:7727, folder $WORKSHOP_DATA or ~/gestalt-workshop-views), running the workshop agent"
 run = "scripts/node.sh"
 
 [tasks.dev]
@@ -34,6 +34,6 @@ run = [
 ]
 
 [tasks.build]
-description = "Production build into dist/ (the shell and the frame page)"
+description = "Production build into dist/ "
 depends = ["setup"]
 run = "pnpm build"
