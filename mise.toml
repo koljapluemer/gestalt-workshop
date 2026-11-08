@@ -1,0 +1,39 @@
+# Developer tools and tasks. After cloning (next to a checkout of gestalts, see README): `mise install`, then
+# `mise run dev`.
+
+[tools]
+node = "26.12.0"
+pnpm = "10.32.1"
+uv = "0.13.6"
+
+[tasks.setup]
+description = "The gestalts checkout next to this one (packages, the core in wasm), then this app's and the agent template's JS dependencies"
+run = [
+  "mise -C ../gestalts run setup",
+  "pnpm install",
+  "pnpm -C agent-template install --ignore-workspace",
+]
+
+[tasks.node]
+description = "The node the workshop syncs with (:7727, folder $WORKSHOP_DATA or ~/gestalt-workshop-data), running the workshop@1 worker"
+run = "scripts/node.sh"
+
+[tasks.dev]
+description = "The node and the app on :5175 with hot reload"
+depends = ["setup"]
+run = "scripts/dev.sh"
+
+[tasks.check]
+description = "Lints, typechecks, tests; the agent template's example passes its own check"
+depends = ["setup"]
+run = [
+  "pnpm lint",
+  "pnpm typecheck",
+  "pnpm test",
+  "scripts/check-example.sh",
+]
+
+[tasks.build]
+description = "Production build into dist/ (the shell and the frame page)"
+depends = ["setup"]
+run = "pnpm build"

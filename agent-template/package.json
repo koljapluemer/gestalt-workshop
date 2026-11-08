@@ -1,0 +1,18 @@
+{
+  "name": "gestalt-workshop-agent-template",
+  "private": true,
+  "description": "What the agent works against in each plugin's workspace: the types of what a plugin may import, and check.ts",
+  "type": "module",
+  "dependencies": {
+    "@gestalts/learning": "link:../../gestalts/packages/learning",
+    "@gestalts/sdk": "link:../../gestalts/packages/sdk",
+    "@types/d3": "7.4.3",
+    "@types/react": "19.3.0",
+    "d3": "7.9.0",
+    "lucide-react": "1.66.0",
+    "react": "19.3.1",
+    "sucrase": "3.35.1",
+    "typescript": "7.0.2",
+    "yaml": "2.8.1"
+  }
+}

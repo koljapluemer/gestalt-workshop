@@ -1,0 +1,5 @@
+# The workshop (`id`, kept for good: notes may record it): the host, the workshop plugin (its gestalt and the
+# workshop@1 worker), and plugins vibecoded into notes, run in a frame
+id: gestalt-workshop
+default_panes: []
+install_ui: false

@@ -1,0 +1,8 @@
+name: workshop-plugin
+version: 1
+description: A plugin vibecoded in the workshop, as one file of source in `source`; its content and params are notes tagged `wp-<id>`.
+requires_tags: [workshop-plugin]
+fields:
+  title: { type: string, required: true }
+  plugin: { type: string, required: true }
+  source: { type: text }
