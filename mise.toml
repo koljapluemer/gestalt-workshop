@@ -19,7 +19,7 @@ description = "The node the workshop syncs with (:7727, folder $WORKSHOP_DATA or
 run = "scripts/node.sh"
 
 [tasks.dev]
-description = "The node and the app on :5175 with hot reload"
+description = "The node and the app (from :5175, the first free port) with hot reload"
 depends = ["setup"]
 run = "scripts/dev.sh"
 

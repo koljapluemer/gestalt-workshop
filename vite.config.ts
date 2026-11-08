@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { gestaltsPlugins } from '@gestalts/vite';
 
 export default defineConfig({
-  server: { port: 5175, strictPort: true },
+  server: { port: 5175 },
   preview: { port: 4175 },
   plugins: [gestaltsPlugins(), react(), tailwindcss()],
   base: './',

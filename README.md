@@ -19,7 +19,7 @@ parent/
 
 ```sh
 mise install          # once after cloning, and when mise.toml changes
-mise run dev          # the node (:7727) and the app (:5175) with hot reload
+mise run dev          # the node (:7727) and the app (from :5175, the first free port) with hot reload
 mise run check        # lints, typechecks, tests, the agent template's example
 mise run build        # dist/
 ```
