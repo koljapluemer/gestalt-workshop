@@ -22,7 +22,9 @@ write is refused with the reason. Keep ymls small and link them.
 | gestalt | props |
 |---|---|
 | `note@1` | `title?`, `main?`, `extra?`, `aliases[]?`, `tags[]?`, `relationships?: [{to, label}]`, `blobs?: [{file, label}]` |
-| `concept@1` | `name`, `parents[]?`, `children[]?`, `practiced-by?: {<yml id>: 0..1}` |
+| `concept@1` | `name`, `parents[]?`, `children[]?` |
+| `flashcard@1` | `front`, `back?`, `extra?`, `tags[]?`, `aliases[]?`, `blobs?` (labels `front`, `back`, `audio`), `concepts?: {<concept id>: 0..1}` |
+| `concept-practice-event@1` | written by `logConceptPractice` |
 | `deck@1` | `name`, `title?`, `members[]` |
 | `fsrs-data@1` | written by `saveReview` |
 | `practice-session@1` | written by `usePracticeSession` |
@@ -34,7 +36,7 @@ write is refused with the reason. Keep ymls small and link them.
 | `react`, `lucide-react` | hooks; icons |
 | `@gestalts/view` | the data, below |
 | `@gestalts/kit` | `Markdown`, `MarkdownEditor`, `Modal`, `NoteCard`, `NoteEditor`, `storeFile` |
-| `@gestalts/learning` | FSRS: `fsrsStates`, `useLocalReviews`, `getScheduler`, `rate`, `saveReview`, `nextItem`, `facetOf`, `Rating`, `usePracticeSession` |
+| `@gestalts/learning` | FSRS: `fsrsStates`, `useLocalReviews`, `getScheduler`, `rate`, `saveReview`, `logConceptPractice`, `nextItem`, `facetOf`, `Rating`, `usePracticeSession` |
 | any npm package | loaded at run time from esm.sh (`d3`, `three`, ...). Needs the network. No types here, so type what you use |
 
 The sources are in `node_modules/@gestalts/*/src`. Read them when unsure; don't guess signatures.
