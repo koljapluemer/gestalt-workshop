@@ -1,0 +1,1 @@
+every learning view, the phrasebook included, still loads all fsrs-data ymls. That's the same unbounded-load issue we just fixed for events. The phrasebook also loads all deck@1 ymls, which is only bounded by how many decks are installed. The fix would be a scoped query, or due-card picking moved into the core.

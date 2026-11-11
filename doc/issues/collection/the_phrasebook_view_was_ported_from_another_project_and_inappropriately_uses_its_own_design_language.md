@@ -1,0 +1,1 @@
+the phrasebook view was ported from another project and inappropriately uses its own design language. Keep transitions, core animations etc, but convert it to the lean tailwind+daisy style everything else is using

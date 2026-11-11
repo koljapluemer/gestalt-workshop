@@ -1,0 +1,1 @@
+aliases are usually managed as a comma-separated list. that sucks. please make them always be managed as a smart multi-line form (always one empty line), adding icon buttons for deleting such a row. this should probably be a shared component in the UI kit
