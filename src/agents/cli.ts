@@ -4,7 +4,8 @@ import type { AgentBackend, AgentEvent, TurnRequest } from './types';
 const SERVICE = 'workshop-agent';
 
 /**
- * The claude CLI on this computer, through the `workshop-agent` backend on the node the page syncs with. The node's proxy answers each request in full, so a turn is a job whose events are polled.
+ * The claude CLI on this computer, through the `workshop-agent` backend on the node the page syncs with. A turn has no
+ * request-sized deadline: it is a cancellable job read through short, independently proxied event polls.
  */
 export function cliBackend(repo: Repo): AgentBackend {
   return {

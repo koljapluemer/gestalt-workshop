@@ -36,6 +36,8 @@ class RunLog:
         self.first_output_ms: int | None = None
         self.result: dict[str, Any] = {}
         self.tools: Counter[str] = Counter()
+        self.check_tools: set[str] = set()
+        self.check: str = "not_run"
         self.request = {
             "message_chars": len(message),
             "files": len(files),
@@ -68,6 +70,16 @@ class RunLog:
             for content in event.get("message", {}).get("content", []):
                 if isinstance(content, dict) and content.get("type") == "tool_use":
                     self.tools[str(content.get("name") or "unknown")] += 1
+                    if (content.get("name") == "Bash"
+                            and (content.get("input") or {}).get("command", "").strip() == "node check.ts"
+                            and isinstance(content.get("id"), str)):
+                        self.check_tools.add(content["id"])
+                        self.check = "failed"
+        elif event.get("type") == "user":
+            for content in event.get("message", {}).get("content", []):
+                if (isinstance(content, dict) and content.get("type") == "tool_result"
+                        and content.get("tool_use_id") in self.check_tools):
+                    self.check = "passed" if content.get("is_error") is False else "failed"
         elif event.get("type") == "result":
             self.result = event
 
@@ -78,11 +90,11 @@ class RunLog:
         if text:
             self._raw({"stream": "stderr", "text": text})
 
-    def finish(self, *, status: str, session: str | None, exit_code: int | None,
+    def finish(self, *, outcome: str, session: str | None, exit_code: int | None,
                changed_files: int, error: str | None) -> dict[str, Any]:
         usage = self.result.get("usage") if isinstance(self.result.get("usage"), dict) else {}
         timings = {"wall_ms": round((time.monotonic() - self.started) * 1000)}
-        for source, target in (("duration_ms", "provider_ms"), ("duration_api_ms", "api_ms")):
+        for source, target in (("duration_ms", "provider_ms"),):
             if (value := _number(self.result.get(source))) is not None:
                 timings[target] = value
         if self.first_output_ms is not None:
@@ -97,7 +109,7 @@ class RunLog:
             if (value := _number(usage.get(source))) is not None:
                 normalized_usage[target] = value
         record: dict[str, Any] = {
-            "schema": "workshop-agent-run@1",
+            "schema": "workshop-agent-run@2",
             "run_id": self.run_id,
             "session_in": self.session_in,
             "session_out": session,
@@ -105,21 +117,27 @@ class RunLog:
             "backend": "claude-cli",
             "started_at": self.started_at.isoformat(),
             "finished_at": _now().isoformat(),
-            "status": status,
+            "outcome": outcome,
             "timings": timings,
             "tools": dict(sorted(self.tools.items())),
             "request": self.request,
             "result": {"exit_code": exit_code, "changed_files": changed_files, "error": error},
+            "verification": {"check": self.check},
+            "warnings": {"permission_denials": len(self.result.get("permission_denials") or [])},
             "raw": str(self.raw_path.relative_to(self.root)),
         }
         if normalized_usage:
             record["usage"] = normalized_usage
-        for source, target in (("total_cost_usd", "cost_usd"), ("num_turns", "turns")):
+        if (value := _number(self.result.get("num_turns"))) is not None:
+            record["turns"] = value
+        session_totals = {}
+        for source, target in (("duration_api_ms", "api_ms"), ("total_cost_usd", "cost_usd")):
             if (value := _number(self.result.get(source))) is not None:
-                record[target] = value
-        model_usage = self.result.get("modelUsage")
-        if isinstance(model_usage, dict):
-            record["models"] = model_usage
+                session_totals[target] = value
+        if isinstance(self.result.get("modelUsage"), dict):
+            session_totals["models"] = self.result["modelUsage"]
+        if session_totals:
+            record["session_totals"] = session_totals
         self.summary_path.parent.mkdir(parents=True, exist_ok=True)
         line = json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
         with _append_lock, self.summary_path.open("a", encoding="utf-8") as out:

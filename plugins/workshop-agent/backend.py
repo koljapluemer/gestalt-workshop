@@ -39,9 +39,10 @@ TEMPLATE_FILES = ["CLAUDE.md", "tsconfig.json", "check.ts", "examples"]
 TOOLS = ["Read", "Edit", "Write", "Glob", "Grep", "Bash(node check.ts)", "Bash(node check.ts:*)"]
 SYSTEM = ("You are editing one view in this directory. CLAUDE.md here is the contract: read it first. "
           "Only view.tsx and view.json are kept; run `node check.ts` before you finish.")
-# the node's service proxy gives up after 180 s; each poll returns well before that
-POLL_S = 20
-KEEP_S = 600
+# A turn itself has no deadline. The node currently limits each proxied request to 180 s, so an events request returns
+# well before then; completed jobs remain available briefly in case the client needs one last poll.
+EVENT_POLL_S = 20
+FINISHED_JOB_KEEP_S = 600
 VIEW_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 
 
@@ -141,7 +142,7 @@ def _run(job: Job, session: str | None, message: str, files: dict[str, str], dia
     failed = None
     changed_count = 0
     exit_code = None
-    status = "error"
+    outcome = "failed"
     try:
         outside = _changed_outside(workspace, files)
         _prepare(workspace, files, diagnostics)
@@ -200,7 +201,7 @@ def _run(job: Job, session: str | None, message: str, files: dict[str, str], dia
             job.emit({"type": "files", "files": changed})
         if failed and not job.cancelled:
             job.emit({"type": "error", "message": failed})
-        status = "cancelled" if job.cancelled else "error" if failed else "ok"
+        outcome = "cancelled" if job.cancelled else "failed" if failed else "completed"
         job.emit({"type": "done", "session": new_session})
     except FileNotFoundError as error:
         failed = f"cannot run {CLAUDE}: {error}"
@@ -212,7 +213,7 @@ def _run(job: Job, session: str | None, message: str, files: dict[str, str], dia
         job.emit({"type": "done", "session": session})
     finally:
         try:
-            runlog.finish(status=status, session=new_session, exit_code=exit_code, changed_files=changed_count, error=failed)
+            runlog.finish(outcome=outcome, session=new_session, exit_code=exit_code, changed_files=changed_count, error=failed)
         except Exception as error:
             print(f"workshop-agent: could not write run log: {error}", file=sys.stderr)
         job.finish()
@@ -221,7 +222,7 @@ def _run(job: Job, session: str | None, message: str, files: dict[str, str], dia
 def _prune() -> None:
     now = time.time()
     with _jobs_lock:
-        for key in [k for k, j in _jobs.items() if j.done and now - j.finished_at > KEEP_S]:
+        for key in [k for k, j in _jobs.items() if j.done and now - j.finished_at > FINISHED_JOB_KEEP_S]:
             del _jobs[key]
 
 
@@ -259,7 +260,7 @@ def events(query: dict) -> tuple[int, str, bytes]:
     except ValueError:
         after = 0
     with job.cond:
-        job.cond.wait_for(lambda: len(job.events) > after or job.done, timeout=POLL_S)
+        job.cond.wait_for(lambda: len(job.events) > after or job.done, timeout=EVENT_POLL_S)
         return _json(200, {"events": job.events[after:], "next": len(job.events), "done": job.done})
 
 
