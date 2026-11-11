@@ -8,7 +8,8 @@ import tailwind from '@tailwindcss/browser?raw';
 import css from './app.css?inline';
 import type { VibeView } from './workshop';
 
-const ENV: ViewEnv = { setState: () => {}, setTitle: () => {}, openView: () => {} };
+// a preview shows one view, and nothing else to open
+const ENV: ViewEnv = { setState: () => {}, setTitle: () => {}, setParams: () => {}, openView: () => false };
 const STATE: JsonMap = {};
 
 /** A vibecoded view, compiled in the browser and run the way any view runs. */
