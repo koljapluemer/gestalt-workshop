@@ -79,8 +79,9 @@ def summarize(records: list[dict], limit: int) -> dict:
     }
 
 
-def human(summary: dict) -> str:
+def human(summary: dict, root: Path) -> str:
     lines = [
+        f"Logs: {root.resolve()}",
         f"Runs: {summary['runs']}  Status: {summary['statuses']}",
         f"Wall: {summary['wall_ms'] / 1000:.1f}s  API: {summary['api_ms'] / 1000:.1f}s  Cost: ${summary['cost_usd']:.4f}",
         f"Usage: {summary['usage']}",
@@ -101,7 +102,10 @@ def main() -> None:
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     summary = summarize(selected(load(args.root), args.view, args.days), max(0, args.limit))
-    print(json.dumps(summary, indent=2) if args.json else human(summary))
+    if args.json:
+        print(json.dumps({"logs": str(args.root.resolve()), **summary}, indent=2))
+    else:
+        print(human(summary, args.root))
 
 
 if __name__ == "__main__":

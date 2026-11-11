@@ -28,6 +28,7 @@ class AgentStatsTest(unittest.TestCase):
             self.assertEqual(summary["runs"], 1)
             self.assertEqual(summary["wall_ms"], 100)
             self.assertEqual(summary["tools"], {"Read": 2})
+            self.assertIn(f"Logs: {root.resolve()}", agent_stats.human(summary, root))
 
 
 if __name__ == "__main__":
