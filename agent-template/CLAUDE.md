@@ -21,7 +21,8 @@ write is refused with the reason. Keep ymls small and link them.
 
 | gestalt | props |
 |---|---|
-| `note@1` | `title?`, `main?`, `extra?`, `aliases[]?`, `tags[]?`, `relationships?: [{to, label}]`, `blobs?: [{file, label}]` |
+| `note@1` | `title?`, `main?`, `extra?`, `aliases[]?`, `tags[]?`, `relationships?: [{to, label}]` (to notes or sources), `blobs?: [{file, label}]` |
+| `source@1` | a citable source: `key`, `entrytype`, `title?`, biblatex fields (`author[]`, `date`, `doi`, …, see `@gestalts/sources`), `aliases[]?`, `tags[]?`, `extra?`, `blobs?`. Notes relating to it are claims about it |
 | `concept@1` | `name`, `parents[]?`, `children[]?` |
 | `flashcard@1` | `front`, `back?`, `extra?`, `tags[]?`, `aliases[]?`, `blobs?` (labels `front`, `back`, `audio`), `concepts?: {<concept id>: 0..1}` |
 | `concept-practice-event@1` | written by `logConceptPractice` |
@@ -37,6 +38,7 @@ write is refused with the reason. Keep ymls small and link them.
 | `@gestalts/view` | the data, below |
 | `@gestalts/kit` | `Markdown`, `MarkdownEditor`, `Modal`, `NoteCard`, `NoteEditor`, `storeFile` |
 | `@gestalts/learning` | FSRS: `fsrsStates`, `useLocalReviews`, `getScheduler`, `rate`, `saveReview`, `logConceptPractice`, `nextItem`, `facetOf`, `Rating`, `usePracticeSession` |
+| `@gestalts/sources` | sources: `FIELDS`, `ENTRY_TYPES`, `normalise`, `bibOf`, `parseBibtex`, `renderBibtex`, `match`, `mergeSource` |
 | any npm package | loaded at run time from esm.sh (`d3`, `three`, ...). Needs the network. No types here, so type what you use |
 
 The sources are in `node_modules/@gestalts/*/src`. Read them when unsure; don't guess signatures.
@@ -46,7 +48,7 @@ Style with Tailwind classes and daisyUI components. Keep it responsive: the fram
 ## Reading and writing
 
 ```tsx
-import { useQuery, useDoc, useWrite, useBlobUrl, useViewState } from '@gestalts/view';
+import { useQuery, useDoc, useRead, useWrite, useBlobUrl, useViewState } from '@gestalts/view';
 
 // a query must name one gestalt, and loads a page at a time; `more()` adds the next
 const { items, loading, error, hasMore, more } = useQuery({ gestalt: 'note@1', tags: { none: ['archive'] }, limit: 50 });
@@ -54,6 +56,8 @@ const { items, loading, error, hasMore, more } = useQuery({ gestalt: 'note@1', t
 // an item is {id, gestalt, value}; `value` has every prop
 
 const note = useDoc('note@1', id);
+const read = useRead(); // once, not kept current: for a check or an action
+const { items: taken } = await read.page({ gestalt: 'source@1', where: { key: 'doe2020' }, limit: 1 });
 const write = useWrite();
 await write.put({ gestalt: 'note@1', main: 'hello' }); // no id: a new one; rejects with the reason if invalid
 await write.remove(id);

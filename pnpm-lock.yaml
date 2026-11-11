@@ -20,6 +20,9 @@ importers:
       '@gestalts/learning':
         specifier: link:../gestalts/packages/learning
         version: link:../gestalts/packages/learning
+      '@gestalts/sources':
+        specifier: link:../gestalts/packages/sources
+        version: link:../gestalts/packages/sources
       '@gestalts/view':
         specifier: link:../gestalts/packages/view
         version: link:../gestalts/packages/view

@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@gestalts/learning": "link:../../gestalts/packages/learning",
+    "@gestalts/sources": "link:../../gestalts/packages/sources",
     "@types/react": "19.3.0",
     "lucide-react": "1.66.0",
     "react": "19.3.1",

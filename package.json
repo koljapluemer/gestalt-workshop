@@ -14,6 +14,7 @@
     "@gestalts/client": "link:../gestalts/packages/client",
     "@gestalts/kit": "link:../gestalts/packages/kit",
     "@gestalts/learning": "link:../gestalts/packages/learning",
+    "@gestalts/sources": "link:../gestalts/packages/sources",
     "@gestalts/vite": "link:../gestalts/packages/vite",
     "@tailwindcss/browser": "4.3.3",
     "lucide-react": "1.66.0",
