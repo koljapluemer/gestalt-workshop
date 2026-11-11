@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Settings } from 'lucide-react';
 import { registry } from 'virtual:gestalts-plugins';
 import { RepoProvider, useHostQuery, type Repo } from '@gestalts/client';
-import { ConnectorSettings, DebugLogButton, usePluginRepo } from '@gestalts/host';
+import { ConnectorSettings, usePluginRepo } from '@gestalts/host';
 import type { ViewError } from '@gestalts/view';
 import { Chat } from './Chat';
 import { Preview } from './Preview';
@@ -65,7 +65,6 @@ function Shell({ repo }: { repo: Repo }) {
       <header className="navbar min-h-0 gap-2 bg-base-100 px-4 py-1 shadow-sm">
         <span className="font-semibold">gestalt-workshop</span>
         <span className="flex-1 truncate text-sm text-base-content/60">{current?.title}</span>
-        <DebugLogButton />
         <details className="dropdown dropdown-end">
           <summary className="btn btn-sm btn-ghost btn-square" title="Sync settings"><Settings className="size-4" /></summary>
           <div className="dropdown-content z-50 mt-2 rounded-box border border-base-300 bg-base-100 p-3 shadow"><ConnectorSettings /></div>

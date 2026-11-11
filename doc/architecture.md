@@ -20,3 +20,15 @@ Tailwind's browser build runs in the frame here, because a vibecoded view's clas
 
 A vibecoded view runs only in the workshop for now. Its `reads` and `writes` come from what the agent declared in
 `view.json`, and there is no prompt when they widen. Chat history isn't kept across reloads; the CLI's session is.
+
+## Agent run logs
+
+The backend records every turn locally under
+`$WORKSHOP_WORKSPACES/.workshop/runs` (by default
+`~/.local/share/gestalt-workshop/workspaces/.workshop/runs`). Daily JSONL files contain normalized timings, token and
+cache usage, cost, tool counts, request sizes and outcomes. `raw/<date>/<run>.jsonl` contains the complete Claude
+stream with receipt timing, including assistant and tool content; it is private local data and is kept until manually
+deleted. Prompts and view files are not copied into the normalized record.
+
+Run `mise run agent-stats`, optionally followed by `-- --days N`, `--view ID`, `--limit N` or `--json`, to summarize
+the journal. A failed logging write is reported to the node's stderr but never changes the agent turn's result.

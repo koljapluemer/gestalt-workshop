@@ -21,12 +21,14 @@ import re
 import shutil
 import signal
 import subprocess
+import sys
 import threading
 import time
 import uuid
 from pathlib import Path
 
 from gestalts_backend import Backend
+from runlog import RunLog
 
 REPO = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(os.environ.get("WORKSHOP_TEMPLATE", REPO / "agent-template"))
@@ -134,6 +136,12 @@ def _summary(name: str, args: dict, workspace: Path) -> str:
 
 def _run(job: Job, session: str | None, message: str, files: dict[str, str], diagnostics: list) -> None:
     workspace = WORKSPACES / job.view
+    runlog = RunLog(WORKSPACES, job.id, job.view, session, message, files, diagnostics)
+    new_session = session
+    failed = None
+    changed_count = 0
+    exit_code = None
+    status = "error"
     try:
         outside = _changed_outside(workspace, files)
         _prepare(workspace, files, diagnostics)
@@ -152,13 +160,13 @@ def _run(job: Job, session: str | None, message: str, files: dict[str, str], dia
         assert job.process.stdin and job.process.stdout and job.process.stderr
         job.process.stdin.write(prompt)
         job.process.stdin.close()
-        new_session = session
-        failed = None
         for line in job.process.stdout:
             try:
                 e = json.loads(line)
             except json.JSONDecodeError:
+                runlog.malformed(line)
                 continue
+            runlog.event(e)
             kind = e.get("type")
             if kind == "system" and e.get("subtype") == "init":
                 new_session = e.get("session_id") or new_session
@@ -176,7 +184,9 @@ def _run(job: Job, session: str | None, message: str, files: dict[str, str], dia
                     what = _summary(d.get("tool_name", ""), d.get("tool_input") or {}, workspace)
                     job.emit({"type": "tool", "name": d.get("tool_name", "?"), "summary": f"(not allowed in the workshop) {what}".strip()})
         code = job.process.wait()
+        exit_code = code
         stderr = job.process.stderr.read().strip()
+        runlog.stderr(stderr)
         if job.cancelled:
             job.emit({"type": "error", "message": "stopped"})
         elif code != 0 and not failed:
@@ -185,18 +195,26 @@ def _run(job: Job, session: str | None, message: str, files: dict[str, str], dia
         (workspace / ".workshop" / "last.json").write_text(json.dumps(after))
         changed: dict[str, str | None] = {p: t for p, t in after.items() if files.get(p) != t}
         changed.update({p: None for p in files if p not in after})
+        changed_count = len(changed)
         if changed:
             job.emit({"type": "files", "files": changed})
         if failed and not job.cancelled:
             job.emit({"type": "error", "message": failed})
+        status = "cancelled" if job.cancelled else "error" if failed else "ok"
         job.emit({"type": "done", "session": new_session})
     except FileNotFoundError as error:
+        failed = f"cannot run {CLAUDE}: {error}"
         job.emit({"type": "error", "message": f"cannot run {CLAUDE}: {error}"})
         job.emit({"type": "done", "session": session})
     except Exception as error:  # the browser must hear of it, or it waits forever
+        failed = f"{type(error).__name__}: {error}"
         job.emit({"type": "error", "message": f"{type(error).__name__}: {error}"})
         job.emit({"type": "done", "session": session})
     finally:
+        try:
+            runlog.finish(status=status, session=new_session, exit_code=exit_code, changed_files=changed_count, error=failed)
+        except Exception as error:
+            print(f"workshop-agent: could not write run log: {error}", file=sys.stderr)
         job.finish()
 
 

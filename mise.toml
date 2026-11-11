@@ -30,8 +30,13 @@ run = [
   "pnpm lint",
   "pnpm typecheck",
   "pnpm test",
+  "python3 -m unittest discover -s tests",
   "scripts/check-example.sh",
 ]
+
+[tasks.agent-stats]
+description = "Summarize local agent time, token use, cost and tool activity"
+run = "python3 scripts/agent_stats.py"
 
 [tasks.build]
 description = "Production build into dist/ "

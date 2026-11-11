@@ -4,7 +4,8 @@ Vibecode a view on your data by chatting with Claude, and see it run beside the 
 syncs like the rest of your [gestalts](../gestalts) data.
 
 For now it's local: the agent is your `claude` CLI, run by this repo's `workshop-agent` backend on a gestalts node. See
-[`doc/architecture.md`](doc/architecture.md).
+[`doc/architecture.md`](doc/architecture.md). Agent timing, token use and raw traces also stay local;
+`mise run agent-stats` summarizes them.
 
 ## Developing
 
